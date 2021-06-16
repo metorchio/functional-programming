@@ -79,7 +79,7 @@ tiempo chocobo tramo = distancia tramo `div` correccionDeVelocidad tramo chocobo
 -- Ejemplo: tiempoTotal bosqueTenebroso amarillo _>_>_>_ 150 
 
 tiempoTotal :: Pista -> Chocobo -> Int
-tiempoTotal pista chocobo = (sum.map (tiempo chocobo)) pista
+tiempoTotal pista = sum.flip map pista.tiempo
 
 ---------------------
 -- 3. Obtener el podio de una carrera, representado por una lista ordenada de los 3 primeros puestos de la misma, en  base a una lista de jinetes y una pista. El puesto está dado por el tiempo total, de menor a mayor y se espera obtener una lista de jinetes. 
@@ -93,21 +93,17 @@ podio pista = take 3.quickSort (menorSegun (tiempoTotal pista.chocobo))
 --Ejemplo: elMejorDelTramo (head bosqueTenebroso) apocalipsis _>_>_>_ "Gise" (Gise tarda 8, mientras que Leo tarda 16 y Mati y Alf tardan 12) 
 
 elMejorDelTramo :: Tramo -> [Jinete] -> String
-elMejorDelTramo tramo = nombre.(!!0).podio [tramo]
+elMejorDelTramo tramo = nombre.head.podio [tramo]
 
 ---------------------
 --b. Dada una pista y una lista de jinetes, saber el nombre del jinete que ganó más tramos (que no quiere decir que haya ganado la carrera). 
 --Ejemplo: elMasWinner pantanoDelDestino apocalipsis _>_>_>_ "Leo" (gana 2 tramos, el resto gana 1 o ninguno) 
-contarRepetidos :: Eq a => a -> [a] -> Int
-contarRepetidos e = length.filter (==e)
 
-tramosGanados :: Pista -> [Jinete] -> [Int]
---tramosGanados pista jinetes = (map (\st -> map (contarRepetidos st jinetes)) .quickSort (==) .map (flip elMejorDelTramo jinetes)) pista
-tramosGanados = undefined
+tramosGanados :: Pista -> [Jinete] -> Jinete -> Int
+tramosGanados pista jinetes supuestoGanador = (length.filter (== nombre supuestoGanador).map (`elMejorDelTramo` jinetes)) pista
 
 elMasWinner :: Pista -> [Jinete] -> String
-elMasWinner = undefined
---elMasWinner pista jinetes = quicksort map (`elMejorDelTramo` jinetes) pista
+elMasWinner pista jinetes = (nombre.head.quickSort (mayorSegun (tramosGanados pista jinetes))) jinetes
 
 ---------------------
 --5. Saber los nombres de los jinetes que pueden hacer un tramo dado en un tiempo indicado máximo.. 
@@ -121,23 +117,33 @@ quienesPueden tramo tiempoMaximo = map nombre.filter ((tiempoMaximo>=).(`tiempo`
 --Ejemplo: estadisticas bosqueTenebroso apocalipsis _>_>_>_ [("Leo",0,150),("Gise",3,85),("Mati",2,138),("Alf",0,141)] 
 
 estadisticas :: Pista -> [Jinete] -> [(String,Int,Int)]
---estadisticas pista = map (\jinete -> (nombre jinete, tramosGanados pista jinete, (tiempoTotal pista.chocobo) jinete) )
-estadisticas = undefined
+estadisticas pista jinetes = map (\unJinete -> (nombre unJinete, (tramosGanados pista jinetes) unJinete, (tiempoTotal pista.chocobo) unJinete )) jinetes
 
 ---------------------
 --7. Saber si una carrera fue pareja. Esto es así si cada chocobo tuvo un tiempo total de hasta 10% menor que el que llegó a continuación. 
 --Ejemplo: fuePareja bosqueTenebroso apocalipsis _>_>_>_ False (entre Gise y Mati, 1ª y 2º respectivamente, hay más de 10% de diferencia) 
 
+correrPista :: Pista -> Jinete -> Int
+correrPista pista = tiempoTotal pista.chocobo
+
+diferenciaPorcentual :: Int -> Int -> Int 
+diferenciaPorcentual a = (subtract 100).(*100).(`div` a)
+
+fueParejaEntreDos :: Int -> Int -> Bool
+fueParejaEntreDos a = (>10).diferenciaPorcentual a
+
 fuePareja :: Pista -> [Jinete] -> Bool
---fuePareja tramo = quickSort (.tiempoTotal tramo.chocobo ) 
---fuePareja tramo = tiempoTotal tramo.chocobo
-fuePareja = undefined
+fuePareja _ [] = False
+fuePareja pista (c0:c1:[]) = fueParejaEntreDos (correrPista pista c0) (correrPista pista c1)
+fuePareja pista (c0:c1:xs) = fueParejaEntreDos (correrPista pista c0) (correrPista pista c1) && fuePareja pista xs
 
 ---------------------
 --8. Definir un chocobo plateado que tenga las mejores características de los otros (mayor fuerza, menor peso, mayor  velocidad), teniendo en cuenta que no sea necesario cambiar su definición si se altera un valor de los anteriores. 
 --Ejemplo: plateado _>_>_>_ (5,3,6) 
 
---plateado = Chocobo 5 3 6 
+chocobos = [ amarillo, negro, blanco, rojo ]
+
+plateado = Chocobo ((maximum.map fuerza) chocobos) ((minimum.map peso) chocobos) ((maximum.map velocidad) chocobos)
 
 ---------------------
 --9. Definir el tipo de funcionHeavy: 
